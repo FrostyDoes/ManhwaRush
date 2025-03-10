@@ -6,6 +6,10 @@ import { Search } from "@/components/search";
 import { CoinDisplay } from "@/components/coin-display";
 import { UserNav } from "@/components/user-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+// Admin check function
+async function isUserAdmin(userData: any): Promise<boolean> {
+  return userData?.role === "admin";
+}
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -13,16 +17,18 @@ export async function SiteHeader() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Get user's coin balance if logged in
+  // Get user's coin balance and admin status if logged in
   let coinBalance = 0;
+  let isAdmin = false;
   if (user) {
     const { data: userData } = await supabase
       .from("users")
-      .select("coins")
+      .select("coins, role")
       .eq("id", user.id)
       .single();
 
     coinBalance = userData?.coins || 0;
+    isAdmin = userData?.role === "admin";
   }
 
   return (
@@ -49,7 +55,7 @@ export async function SiteHeader() {
                 coinBalance={coinBalance}
                 className="hidden sm:flex"
               />
-              <UserNav user={user} />
+              <UserNav user={user} isAdmin={isAdmin} />
             </>
           ) : (
             <>

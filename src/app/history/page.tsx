@@ -25,20 +25,8 @@ export default async function ReadingHistoryPage() {
   }
 
   // Get user's reading history with manhwa and chapter details
-  const { data: readingHistory } = await supabase
-    .from("reading_history")
-    .select(
-      `
-      id,
-      last_read_at,
-      progress,
-      manhwa:manhwa_id(id, title, cover_image, slug),
-      chapter:chapter_id(id, number, title)
-    `,
-    )
-    .eq("user_id", user.id)
-    .order("last_read_at", { ascending: false })
-    .limit(20);
+  const { getUserReadingHistory } = await import("@/utils/reading-progress");
+  const readingHistory = await getUserReadingHistory(user.id);
 
   // Sample data for development/preview
   const sampleHistory = [

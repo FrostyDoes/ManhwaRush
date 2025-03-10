@@ -20,13 +20,16 @@ import {
   BookMarked,
   History,
   LogOut,
+  ShoppingBag,
+  Shield,
 } from "lucide-react";
 
 interface UserNavProps {
   user: User;
+  isAdmin?: boolean;
 }
 
-export function UserNav({ user }: UserNavProps) {
+export function UserNav({ user, isAdmin = false }: UserNavProps) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -70,6 +73,10 @@ export function UserNav({ user }: UserNavProps) {
             <Coins className="mr-2 h-4 w-4" />
             <span>My Coins</span>
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/profile/purchases")}>
+            <ShoppingBag className="mr-2 h-4 w-4" />
+            <span>My Purchases</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push("/bookmarks")}>
             <BookMarked className="mr-2 h-4 w-4" />
             <span>Bookmarks</span>
@@ -78,6 +85,12 @@ export function UserNav({ user }: UserNavProps) {
             <History className="mr-2 h-4 w-4" />
             <span>Reading History</span>
           </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem onClick={() => router.push("/admin")}>
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Admin Dashboard</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>

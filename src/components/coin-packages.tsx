@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Coins } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Coins, CreditCard, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "../../supabase/supabase";
 
 interface CoinPackage {
@@ -28,26 +37,37 @@ interface CoinPackagesProps {
 }
 
 export function CoinPackages({ packages, user }: CoinPackagesProps) {
-  const handlePurchase = async (
-    packageId: string,
-    coins: number,
-    price: number,
-  ) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [confirmPackage, setConfirmPackage] = useState<CoinPackage | null>(
+    null,
+  );
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const handlePurchase = (pkg: CoinPackage) => {
     if (!user) {
       window.location.href = "/sign-in?redirect=coins";
       return;
     }
+
+    setConfirmPackage(pkg);
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!confirmPackage || !user) return;
+
+    setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke(
         "supabase-functions-create-checkout",
         {
           body: {
-            price_id: packageId,
+            price_id: confirmPackage.id,
             user_id: user.id,
-            return_url: `${window.location.origin}/coins/success?coins=${coins}`,
+            return_url: `${window.location.origin}/coins/success?coins=${confirmPackage.coins}`,
             metadata: {
-              coins: coins,
+              coins: confirmPackage.coins,
               type: "coin_purchase",
             },
           },
@@ -68,6 +88,9 @@ export function CoinPackages({ packages, user }: CoinPackagesProps) {
       }
     } catch (error) {
       console.error("Error creating checkout session:", error);
+    } finally {
+      setIsLoading(false);
+      setShowConfirmation(false);
     }
   };
 
@@ -116,14 +139,98 @@ export function CoinPackages({ packages, user }: CoinPackagesProps) {
           <CardFooter>
             <Button
               className="w-full"
-              size="lg"
-              onClick={() => handlePurchase(pkg.id, pkg.coins, pkg.price)}
+              onClick={() => handlePurchase(pkg)}
+              disabled={isLoading}
+              variant={pkg.popular ? "default" : "outline"}
             >
-              Purchase
+              {isLoading && confirmPackage?.id === pkg.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Purchase"
+              )}
             </Button>
           </CardFooter>
         </Card>
       ))}
+
+      {/* Purchase Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogDescription>
+              You are about to purchase the following coin package:
+            </DialogDescription>
+          </DialogHeader>
+
+          {confirmPackage && (
+            <div className="py-4">
+              <div className="flex flex-col items-center justify-center mb-6">
+                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Coins className="h-10 w-10 text-yellow-400" />
+                </div>
+                <h3 className="text-xl font-bold">{confirmPackage.name}</h3>
+                <div className="flex items-center mt-2">
+                  <Coins className="h-5 w-5 text-yellow-400 mr-2" />
+                  <span className="text-lg font-medium">
+                    {confirmPackage.coins} Coins
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span>Price:</span>
+                  <span className="font-bold">
+                    ${confirmPackage.price.toFixed(2)} USD
+                  </span>
+                </div>
+                {confirmPackage.discount && (
+                  <div className="flex justify-between items-center text-green-500">
+                    <span>Discount:</span>
+                    <span>{confirmPackage.discount}% off</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-sm text-muted-foreground mb-4">
+                <p className="flex items-start mb-2">
+                  <CreditCard className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  You'll be redirected to our secure payment processor to
+                  complete this transaction.
+                </p>
+                <p className="flex items-start">
+                  <CheckCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  Coins will be added to your account immediately after payment.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmation(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmPurchase} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Purchase"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
