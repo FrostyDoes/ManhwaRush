@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "../../supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
+import { MakeAdminButton } from "@/components/make-admin-button";
 
 interface ProfileFormProps {
   user: User;
@@ -24,6 +25,30 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
     full_name: userData?.full_name || "",
     bio: userData?.bio || "",
   });
+
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
+
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", data.user.id)
+            .single();
+
+          setIsCurrentUserAdmin(userData?.role === "admin");
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+
+    checkAdminStatus();
+  }, [supabase]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -127,16 +152,25 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
         </div>
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Updating...
-          </>
-        ) : (
-          "Save Changes"
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Updating...
+            </>
+          ) : (
+            "Save Changes"
+          )}
+        </Button>
+
+        {isCurrentUserAdmin && userData?.role !== "admin" && (
+          <MakeAdminButton
+            userId={userData?.id}
+            userEmail={userData?.email || user.email || ""}
+          />
         )}
-      </Button>
+      </div>
     </form>
   );
 }

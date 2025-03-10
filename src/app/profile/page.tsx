@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileForm } from "@/components/profile-form";
+import { Button } from "@/components/ui/button";
+import { Shield } from "lucide-react";
 import { CoinHistory } from "@/components/coin-history";
 import { AccountSettings } from "@/components/account-settings";
 import { Coins, User, Settings } from "lucide-react";
@@ -31,6 +33,9 @@ export default async function ProfilePage() {
     .select("*")
     .eq("id", user.id)
     .single();
+
+  // Check if user is an admin
+  const isAdmin = userData?.role === "admin";
 
   // Get user's coin transactions
   const { data: transactions } = await supabase
@@ -116,6 +121,25 @@ export default async function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                       <ProfileForm user={user} userData={userData} />
+
+                      {isAdmin && (
+                        <div className="mt-6 pt-6 border-t">
+                          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-primary" />
+                            Admin Actions
+                          </h3>
+                          <Button
+                            variant="outline"
+                            className="flex items-center gap-2"
+                            asChild
+                          >
+                            <a href="/admin">
+                              <Shield className="h-4 w-4" />
+                              Go to Admin Dashboard
+                            </a>
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
