@@ -9,6 +9,278 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          created_at: string | null
+          id: string
+          manhwa_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          manhwa_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          manhwa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_manhwa_id_fkey"
+            columns: ["manhwa_id"]
+            isOneToOne: false
+            referencedRelation: "manhwa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chapters: {
+        Row: {
+          coin_price: number | null
+          created_at: string | null
+          id: string
+          is_premium: boolean | null
+          manhwa_id: string
+          number: number
+          pages: Json | null
+          published_at: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          coin_price?: number | null
+          created_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          manhwa_id: string
+          number: number
+          pages?: Json | null
+          published_at?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          coin_price?: number | null
+          created_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          manhwa_id?: string
+          number?: number
+          pages?: Json | null
+          published_at?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_manhwa_id_fkey"
+            columns: ["manhwa_id"]
+            isOneToOne: false
+            referencedRelation: "manhwa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genres: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      manhwa: {
+        Row: {
+          artist: string | null
+          author: string | null
+          banner_image: string | null
+          cover_image: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          rating: number | null
+          slug: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          artist?: string | null
+          author?: string | null
+          banner_image?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          rating?: number | null
+          slug: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          artist?: string | null
+          author?: string | null
+          banner_image?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          rating?: number | null
+          slug?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      manhwa_genres: {
+        Row: {
+          genre_id: string
+          manhwa_id: string
+        }
+        Insert: {
+          genre_id: string
+          manhwa_id: string
+        }
+        Update: {
+          genre_id?: string
+          manhwa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manhwa_genres_genre_id_fkey"
+            columns: ["genre_id"]
+            isOneToOne: false
+            referencedRelation: "genres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manhwa_genres_manhwa_id_fkey"
+            columns: ["manhwa_id"]
+            isOneToOne: false
+            referencedRelation: "manhwa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_history: {
+        Row: {
+          chapter_id: string
+          id: string
+          last_read_at: string | null
+          manhwa_id: string
+          progress: number | null
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          id?: string
+          last_read_at?: string | null
+          manhwa_id: string
+          progress?: number | null
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          id?: string
+          last_read_at?: string | null
+          manhwa_id?: string
+          progress?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_history_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_history_manhwa_id_fkey"
+            columns: ["manhwa_id"]
+            isOneToOne: false
+            referencedRelation: "manhwa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           amount: number | null
@@ -95,9 +367,49 @@ export type Database = {
           },
         ]
       }
+      user_chapter_purchases: {
+        Row: {
+          chapter_id: string
+          coins_spent: number
+          id: string
+          purchased_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          coins_spent: number
+          id?: string
+          purchased_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          coins_spent?: number
+          id?: string
+          purchased_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_chapter_purchases_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_chapter_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
+          coins: number | null
           created_at: string
           credits: string | null
           email: string | null
@@ -112,6 +424,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          coins?: number | null
           created_at?: string
           credits?: string | null
           email?: string | null
@@ -126,6 +439,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          coins?: number | null
           created_at?: string
           credits?: string | null
           email?: string | null
