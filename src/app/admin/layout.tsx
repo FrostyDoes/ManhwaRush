@@ -19,7 +19,7 @@ async function isUserAdmin(userId: string): Promise<boolean> {
 
     if (error || !data) return false;
 
-    return data.role !== "admin";
+    return data.role === "admin";
   } catch (error) {
     console.error("Error checking admin status:", error);
     return false;
