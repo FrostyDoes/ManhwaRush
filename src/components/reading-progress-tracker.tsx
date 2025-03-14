@@ -1,33 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-// Custom hook to replace react-intersection-observer
-const useInView = () => {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setInView(entry.isIntersecting);
-      },
-      { threshold: 0.5 },
-    );
-
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []);
-
-  return [ref, inView];
-};
+import { useToast } from "@/components/ui/use-toast";
 
 interface ReadingProgressTrackerProps {
   userId: string;
@@ -44,43 +18,25 @@ export function ReadingProgressTracker({
   chapterNumber,
   totalPages,
 }: ReadingProgressTrackerProps) {
+  const [currentPage, setCurrentPage] = useState(1);
   const [progress, setProgress] = useState(0);
-  const lastSavedProgress = useRef(0);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const progressUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
-  // Create refs for each page to track visibility
-  const pageRefs = Array.from({ length: totalPages }).map(() => {
-    return useInView({
-      threshold: 0.5, // Consider page viewed when 50% visible
-      triggerOnce: true, // Only trigger once per page
-    });
-  });
-
-  // Calculate progress based on which pages are in view
+  // Update progress when page changes
   useEffect(() => {
-    const viewedPages = pageRefs.filter((ref) => ref[1]).length;
-    const newProgress = Math.min(viewedPages / totalPages, 1);
-
-    if (newProgress > progress) {
-      setProgress(newProgress);
-    }
-  }, [pageRefs, totalPages, progress]);
-
-  // Save progress to the database
-  useEffect(() => {
-    // Don't save if progress hasn't changed significantly (at least 5%)
-    if (progress - lastSavedProgress.current < 0.05 && progress < 1) return;
-
-    // Don't save for non-logged in users
     if (!userId) return;
 
-    // Clear any existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    // Calculate progress as a percentage (0 to 1)
+    const newProgress = totalPages > 0 ? currentPage / totalPages : 0;
+    setProgress(newProgress);
+
+    // Debounce progress updates to avoid too many database writes
+    if (progressUpdateTimeoutRef.current) {
+      clearTimeout(progressUpdateTimeoutRef.current);
     }
 
-    // Set a timeout to avoid too many database writes
-    saveTimeoutRef.current = setTimeout(async () => {
+    progressUpdateTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch("/api/reading-progress", {
           method: "POST",
@@ -91,30 +47,70 @@ export function ReadingProgressTracker({
             manhwaId,
             chapterId,
             chapterNumber,
-            progress,
+            progress: newProgress,
           }),
         });
 
-        if (response.ok) {
-          lastSavedProgress.current = progress;
-          console.log(`Progress saved: ${Math.round(progress * 100)}%`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || "Failed to update reading progress",
+          );
         }
-      } catch (error) {
-        console.error("Failed to save reading progress:", error);
+      } catch (error: any) {
+        console.error("Error updating reading progress:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save your reading progress",
+          variant: "destructive",
+        });
       }
-    }, 2000); // Wait 2 seconds before saving
+    }, 2000); // Update after 2 seconds of no page changes
 
-    // Cleanup timeout on unmount
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+      if (progressUpdateTimeoutRef.current) {
+        clearTimeout(progressUpdateTimeoutRef.current);
       }
     };
-  }, [progress, userId, manhwaId, chapterId, chapterNumber]);
+  }, [
+    userId,
+    manhwaId,
+    chapterId,
+    chapterNumber,
+    currentPage,
+    totalPages,
+    toast,
+  ]);
 
-  // Return refs to be attached to page elements
-  return {
-    pageRefs,
-    progress,
-  };
+  // Listen for scroll events to track current page
+  useEffect(() => {
+    const handleScroll = () => {
+      // This is a simplified approach - in a real implementation, you would
+      // need to determine which page is currently most visible in the viewport
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // If we're at the bottom of the page, mark as complete
+      if (scrollPosition + windowHeight >= documentHeight - 100) {
+        setCurrentPage(totalPages);
+        return;
+      }
+
+      // Otherwise, estimate current page based on scroll position
+      // This is very simplified and would need to be adapted to your actual page layout
+      const scrollPercentage = scrollPosition / (documentHeight - windowHeight);
+      const estimatedPage = Math.max(
+        1,
+        Math.ceil(scrollPercentage * totalPages),
+      );
+      setCurrentPage(estimatedPage);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [totalPages]);
+
+  // No visible UI - this component just tracks progress
+  return null;
 }

@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -111,10 +111,10 @@ export default async function PurchasesPage() {
                     <div className="w-full sm:w-1/4 md:w-1/5 h-[180px] sm:h-auto relative">
                       <Image
                         src={
-                          purchase.manhwa?.cover_image ||
+                          purchase.chapter?.manhwa?.cover_image ||
                           "https://images.unsplash.com/photo-1614583224978-f05ce51ef5fa?w=800&q=80"
                         }
-                        alt={purchase.manhwa?.title || "Manhwa"}
+                        alt={purchase.chapter?.manhwa?.title || "Manhwa"}
                         fill
                         className="object-cover"
                       />
@@ -123,7 +123,8 @@ export default async function PurchasesPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                         <div>
                           <h3 className="text-xl font-bold">
-                            {purchase.manhwa?.title || "Unknown Manhwa"}
+                            {purchase.chapter?.manhwa?.title ||
+                              "Unknown Manhwa"}
                           </h3>
                           <p className="text-muted-foreground text-sm">
                             Chapter {purchase.chapter?.number || "Unknown"}:{" "}
@@ -146,7 +147,7 @@ export default async function PurchasesPage() {
                       <div className="flex flex-col sm:flex-row gap-3 mt-4">
                         <Button asChild>
                           <Link
-                            href={`/manhwa/${purchase.manhwa?.slug || purchase.manhwa?.id}/chapter/${purchase.chapter?.number}`}
+                            href={`/manhwa/${purchase.chapter?.manhwa?.slug || purchase.chapter?.manhwa_id}/chapter/${purchase.chapter?.number}`}
                           >
                             Read Chapter
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -154,7 +155,7 @@ export default async function PurchasesPage() {
                         </Button>
                         <Button asChild variant="outline">
                           <Link
-                            href={`/manhwa/${purchase.manhwa?.slug || purchase.manhwa?.id}`}
+                            href={`/manhwa/${purchase.chapter?.manhwa?.slug || purchase.chapter?.manhwa_id}`}
                           >
                             View Series
                           </Link>

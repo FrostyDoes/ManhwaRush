@@ -93,8 +93,7 @@ export async function getUserPurchaseHistory(userId: string) {
 
   const supabase = await createClient();
 
-  // This assumes you have a chapters table with these fields
-  // Adjust the query based on your actual database schema
+  // Join with chapters table to get chapter details
   const { data, error } = await supabase
     .from("user_chapter_purchases")
     .select(
@@ -103,8 +102,7 @@ export async function getUserPurchaseHistory(userId: string) {
       chapter_id,
       coins_spent,
       purchased_at,
-      manhwa:manhwa_id(*),
-      chapter:chapter_id(*)
+      chapter:chapters!chapter_id(*)
     `,
     )
     .eq("user_id", userId)
@@ -115,5 +113,19 @@ export async function getUserPurchaseHistory(userId: string) {
     return [];
   }
 
-  return data;
+  // Process the data to add manhwa information from the chapter
+  const processedData =
+    data?.map((purchase) => {
+      // If the chapter has manhwa information, add it directly to the purchase object
+      // This makes it easier to access in the UI
+      if (purchase.chapter && purchase.chapter.manhwa_id) {
+        return {
+          ...purchase,
+          manhwa_id: purchase.chapter.manhwa_id,
+        };
+      }
+      return purchase;
+    }) || [];
+
+  return processedData;
 }

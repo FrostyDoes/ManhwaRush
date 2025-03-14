@@ -92,6 +92,42 @@ export type Database = {
           },
         ]
       }
+      coin_packages: {
+        Row: {
+          coins: number
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          stripe_price_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          coins: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          stripe_price_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          coins?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          stripe_price_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           amount: number
@@ -231,6 +267,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      manhwas: {
+        Row: {
+          author: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       reading_history: {
         Row: {
@@ -406,6 +475,84 @@ export type Database = {
           },
         ]
       }
+      user_reading_progress: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_favorite: boolean | null
+          last_read_chapter: string | null
+          manhwa_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          last_read_chapter?: string | null
+          manhwa_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          last_read_chapter?: string | null
+          manhwa_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reading_progress_last_read_chapter_fkey"
+            columns: ["last_read_chapter"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_reading_progress_manhwa_id_fkey"
+            columns: ["manhwa_id"]
+            isOneToOne: false
+            referencedRelation: "manhwas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          start_date: string | null
+          subscription_status: string
+          subscription_tier: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          start_date?: string | null
+          subscription_status: string
+          subscription_tier: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          start_date?: string | null
+          subscription_status?: string
+          subscription_tier?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -492,7 +639,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      adjust_user_coins: {
+        Args: {
+          p_user_id: string
+          p_new_balance: number
+          p_amount: number
+          p_transaction_type: string
+          p_description: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

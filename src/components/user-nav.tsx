@@ -22,6 +22,7 @@ import {
   LogOut,
   ShoppingBag,
   Shield,
+  BarChart,
 } from "lucide-react";
 
 interface UserNavProps {
@@ -73,6 +74,12 @@ export function UserNav({ user, isAdmin = false }: UserNavProps) {
             <Coins className="mr-2 h-4 w-4" />
             <span>My Coins</span>
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push("/profile/transactions")}
+          >
+            <Coins className="mr-2 h-4 w-4" />
+            <span>Transaction History</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push("/profile/purchases")}>
             <ShoppingBag className="mr-2 h-4 w-4" />
             <span>My Purchases</span>
@@ -85,13 +92,22 @@ export function UserNav({ user, isAdmin = false }: UserNavProps) {
             <History className="mr-2 h-4 w-4" />
             <span>Reading History</span>
           </DropdownMenuItem>
-          {isAdmin && (
-            <DropdownMenuItem onClick={() => router.push("/admin")}>
-              <Shield className="mr-2 h-4 w-4" />
-              <span>Admin Dashboard</span>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuGroup>
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => router.push("/admin")}>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/admin/coins")}>
+                <BarChart className="mr-2 h-4 w-4" />
+                <span>Coin Management</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />

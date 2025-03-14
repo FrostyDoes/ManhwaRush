@@ -1,113 +1,51 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { createClient } from "../../../../../../supabase/server";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   ChevronLeft,
   ChevronRight,
-  Menu,
-  Settings,
-  Bookmark,
-  Share,
   Home,
   Lock,
   Coins,
+  Loader2,
 } from "lucide-react";
 import { PurchaseChapterDialog } from "@/components/purchase-chapter-dialog";
 import { ChapterPageContent } from "@/components/chapter-page-content";
 import Link from "next/link";
 import Image from "next/image";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
 
-export default async function ChapterPage({
-  params,
-}: {
+interface ChapterPageProps {
   params: { id: string; number: string };
-}) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+}
+
+export default function ChapterPage({ params }: ChapterPageProps) {
+  const [chapterData, setChapterData] = useState<any>(null);
+  const [accessStatus, setAccessStatus] = useState<any>(null);
+  const [pages, setPages] = useState<any[]>([]);
+  const [userProgress, setUserProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [userCoins, setUserCoins] = useState(0);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const chapterNumber = parseInt(params.number);
   const manhwaId = params.id;
 
-  // Check if this is a premium chapter
-  const isPremiumChapter =
-    chapterNumber > 50 &&
-    (manhwaId === "tower-of-god" || manhwaId === "omniscient-reader");
-
-  // Calculate coin price for premium chapters
-  const coinPrice = isPremiumChapter ? Math.floor(Math.random() * 3) + 3 : 0; // 3-5 coins for premium
-
-  // Get chapter ID
-  const chapterId = `${manhwaId}-ch-${chapterNumber}`;
-
-  // Check if user has purchased this chapter
-  let hasUserPurchased = false;
-  let userCoins = 0;
-  let hasSubscription = false;
-
-  if (user && isPremiumChapter) {
-    // Import and use the utility function
-    const { hasUserPurchasedChapter } = await import(
-      "@/utils/chapter-purchases"
-    );
-    hasUserPurchased = await hasUserPurchasedChapter(user.id, chapterId);
-
-    // Get user's coin balance
-    const { data: userData } = await supabase
-      .from("users")
-      .select("coins")
-      .eq("id", user.id)
-      .single();
-
-    userCoins = userData?.coins || 0;
-
-    // Check if user has an active subscription that grants access to premium content
-    const { data: subscriptionData } = await supabase
-      .from("subscriptions")
-      .select("status")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    hasSubscription = !!subscriptionData;
-  }
-
-  // Get user's reading progress if logged in
-  let userProgress = 0;
-  if (user) {
-    const { getReadingProgress } = await import("@/utils/reading-progress");
-    const progressData = await getReadingProgress(user.id, chapterId);
-    if (progressData) {
-      userProgress = progressData.progress;
-    }
-  }
-
-  // Determine if user can access the full chapter
-  const canAccessFullChapter =
-    !isPremiumChapter || hasUserPurchased || hasSubscription;
-
-  // Generate sample chapter data
-  const chapterData = {
-    id: chapterId,
-    number: chapterNumber,
-    title: `Chapter ${chapterNumber}`,
-    manhwaTitle:
-      manhwaId === "solo-leveling"
-        ? "Solo Leveling"
-        : manhwaId === "tower-of-god"
-          ? "Tower of God"
-          : manhwaId === "omniscient-reader"
-            ? "Omniscient Reader"
-            : "Unknown Manhwa",
-    releaseDate: new Date(
-      Date.now() - chapterNumber * 86400000 * 3,
-    ).toISOString(),
-    isPremium: isPremiumChapter,
-    coinPrice: coinPrice,
-    hasUserPurchased: hasUserPurchased,
+  // Format date function
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   // Generate sample pages for the chapter
@@ -144,28 +82,151 @@ export default async function ChapterPage({
       }
 
       return {
-        id: `${chapterData.id}-page-${i + 1}`,
+        id: `${manhwaId}-ch-${chapterNumber}-page-${i + 1}`,
         number: i + 1,
         imageUrl,
       };
     });
   };
 
-  const pages = generatePages(15); // Average 15 pages per chapter
+  // Fetch chapter details and access status
+  useEffect(() => {
+    const fetchChapterDetails = async () => {
+      setIsLoading(true);
+      try {
+        // Create Supabase client
+        const { createClient } = await import("../../../../../../supabase/client");
+        const supabase = createClient();
 
-  // Format release date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (!user) {
+          router.push(`/sign-in?redirect=/manhwa/${manhwaId}/chapter/${chapterNumber}`);
+          return;
+        }
+
+        // Get user's coin balance
+        const { data: userData } = await supabase
+          .from("users")
+          .select("coins")
+          .eq("id", user.id)
+          .single();
+
+        setUserCoins(userData?.coins || 0);
+
+        // Fetch chapter details
+        const chapterResponse = await fetch(`/api/chapters/coin-access?manhwaId=${manhwaId}&chapterNumber=${chapterNumber}`);
+        if (!chapterResponse.ok) throw new Error("Failed to fetch chapter details");
+        const chapterDetails = await chapterResponse.json();
+        setChapterData(chapterDetails);
+
+        // Fetch access status
+        const accessResponse = await fetch(`/api/chapters/purchase-status?chapterId=${chapterDetails.id}`);
+        if (!accessResponse.ok) throw new Error("Failed to check access status");
+        const accessData = await accessResponse.json();
+        setAccessStatus(accessData);
+
+        // Get user's reading progress
+        const progressResponse = await fetch(`/api/reading-progress?chapterId=${chapterDetails.id}`);
+        if (progressResponse.ok) {
+          const progressData = await progressResponse.json();
+          setUserProgress(progressData.progress || 0);
+        }
+
+        // Generate pages
+        setPages(generatePages(15)); // Average 15 pages per chapter
+
+        // Show toast for free chapters
+        if (chapterDetails.isFree) {
+          toast({
+            title: "Free Chapter",
+            description: "Enjoy this free chapter!",
+            duration: 3000,
+          });
+        }
+      } catch (error: any) {
+        console.error("Error fetching chapter details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load chapter details",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChapterDetails();
+
+    // Set up real-time subscription for purchase status
+    const setupRealtimeSubscription = async () => {
+      try {
+        const { createClient } = await import("../../../../../../supabase/client");
+        const supabase = createClient();
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return () => {};
+
+        const channel = supabase
+          .channel("purchase-status-changes")
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "user_chapter_purchases",
+              filter: `user_id=eq.${user.id}`,
+            },
+            () => {
+              // Refresh access status when purchase is made
+              if (chapterData?.id) {
+                fetch(`/api/chapters/purchase-status?chapterId=${chapterData.id}`)
+                  .then(res => res.json())
+                  .then(data => setAccessStatus(data))
+                  .catch(err => console.error("Error refreshing access status:", err));
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      } catch (error) {
+        console.error("Error setting up realtime subscription:", error);
+        return () => {};
+      }
+    };
+
+    const unsubscribe = setupRealtimeSubscription();
+    return () => {
+      unsubscribe.then(unsub => unsub());
+    };
+  }, [manhwaId, chapterNumber, router, toast]);
 
   // Calculate prev/next chapter numbers
   const prevChapter = chapterNumber > 1 ? chapterNumber - 1 : null;
   const nextChapter = chapterNumber < 200 ? chapterNumber + 1 : null; // Assuming max 200 chapters
+
+  // Determine if user can access the full chapter
+  const canAccessFullChapter = accessStatus?.hasAccess || accessStatus?.isFree;
+
+  if (isLoading || !chapterData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-lg">Loading chapter...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -184,10 +245,30 @@ export default async function ChapterPage({
               <Separator orientation="vertical" className="h-6" />
               <div className="text-sm font-medium">
                 <Link href={`/manhwa/${manhwaId}`} className="hover:underline">
-                  {chapterData.manhwaTitle}
+                  {chapterData.title ? chapterData.title.split(":")[0] : "Manhwa"}
                 </Link>
                 <span className="mx-2">›</span>
-                <span>{chapterData.title}</span>
+                <span>Chapter {chapterNumber}</span>
+                
+                {/* Access badges */}
+                <div className="inline-flex ml-2">
+                  {accessStatus?.isFree && (
+                    <Badge 
+                      className="bg-green-500 hover:bg-green-500/90 text-white rounded-full px-2 py-0.5 text-xs"
+                    >
+                      FREE
+                    </Badge>
+                  )}
+                  {!accessStatus?.isFree && !accessStatus?.hasAccess && (
+                    <Badge 
+                      variant="outline"
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <Coins className="h-3 w-3 text-yellow-400" />
+                      <span>{chapterData.coinPrice}</span>
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -230,9 +311,11 @@ export default async function ChapterPage({
         <div className="max-w-3xl mx-auto">
           {/* Chapter Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">{chapterData.title}</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              Chapter {chapterNumber}{chapterData.title ? `: ${chapterData.title}` : ""}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {formatDate(chapterData.releaseDate)}
+              {formatDate(chapterData.createdAt)}
             </p>
           </div>
 
@@ -256,139 +339,20 @@ export default async function ChapterPage({
           {!canAccessFullChapter ? (
             <div className="space-y-6 py-8">
               {/* Preview first 3 pages */}
-              <div className="space-y-4">
-                {pages.slice(0, 3).map((page) => (
-                  <div key={page.id} className="w-full">
-                    <Image
-                      src={page.imageUrl}
-                      alt={`Page ${page.number}`}
-                      width={1000}
-                      height={1500}
-                      className="w-full h-auto rounded-md"
-                    />
-                  </div>
-                ))}
-              </div>
+              <ChapterPageContent
+                pages={pages}
+                manhwaId={manhwaId}
+                chapterId={chapterData.id}
+                chapterNumber={chapterNumber}
+                isPreview={true}
+                previewPageCount={3}
+              />
 
-              {/* Blur overlay with purchase prompt */}
+              {/* Purchase prompt */}
               <div className="relative mt-8 mb-12">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10" />
-                <div className="relative">
-                  <Image
-                    src={pages[3]?.imageUrl}
-                    alt="Preview"
-                    width={1000}
-                    height={1500}
-                    className="w-full h-auto rounded-md blur-sm opacity-50"
-                  />
-                </div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                   <div className="bg-card p-6 rounded-lg shadow-lg border max-w-md w-full text-center">
                     <Lock className="h-12 w-12 mx-auto mb-4 text-primary" />
                     <h3 className="text-xl font-bold mb-2">Premium Chapter</h3>
-                    <p className="text-muted-foreground mb-6">
-                      This is a premium chapter. Purchase it to continue
-                      reading.
-                    </p>
-
-                    {user ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center justify-center gap-2 text-lg font-bold">
-                          <Coins className="h-5 w-5 text-yellow-400" />
-                          <span>{coinPrice} coins</span>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                          <PurchaseChapterDialog
-                            manhwaId={manhwaId}
-                            chapterId={chapterId}
-                            chapterNumber={chapterNumber}
-                            chapterTitle={chapterData.title}
-                            coinPrice={coinPrice}
-                            userCoins={userCoins}
-                          >
-                            <Button className="w-full">
-                              <Coins className="mr-2 h-4 w-4" />
-                              Purchase Chapter
-                            </Button>
-                          </PurchaseChapterDialog>
-
-                          <Button variant="outline" asChild>
-                            <Link href="/pricing">
-                              Subscribe for Unlimited Access
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        <Button asChild className="w-full">
-                          <Link
-                            href={`/sign-in?redirect=/manhwa/${manhwaId}/chapter/${chapterNumber}`}
-                          >
-                            Sign in to Purchase
-                          </Link>
-                        </Button>
-
-                        <Button variant="outline" asChild>
-                          <Link href="/pricing">View Subscription Plans</Link>
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <ChapterPageContent
-              pages={pages}
-              userId={user?.id}
-              manhwaId={manhwaId}
-              chapterId={chapterId}
-              chapterNumber={chapterNumber}
-            />
-          )}
-
-          {/* Chapter Navigation */}
-          <div className="flex justify-between items-center mt-8 pt-4 border-t">
-            <Button
-              variant="outline"
-              disabled={!prevChapter}
-              asChild={!!prevChapter}
-            >
-              {prevChapter ? (
-                <Link href={`/manhwa/${manhwaId}/chapter/${prevChapter}`}>
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous Chapter
-                </Link>
-              ) : (
-                <>
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous Chapter
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              disabled={!nextChapter}
-              asChild={!!nextChapter}
-            >
-              {nextChapter ? (
-                <Link href={`/manhwa/${manhwaId}/chapter/${nextChapter}`}>
-                  Next Chapter
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              ) : (
-                <>
-                  Next Chapter
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
+                    <p className="text-muted-foreground mb-6

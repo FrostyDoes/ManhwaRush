@@ -127,65 +127,74 @@ export default async function BookmarksPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {bookmarkItems.map((bookmark) => (
-                <Card key={bookmark.id} className="overflow-hidden">
-                  <div className="flex">
-                    <div className="w-1/3 h-[200px] relative">
-                      <Image
-                        src={bookmark.manhwa.cover_image}
-                        alt={bookmark.manhwa.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 p-5">
-                      <div className="flex flex-col h-full justify-between">
-                        <div>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {bookmark.manhwa.genres
-                              ?.slice(0, 2)
-                              .map((genre: string) => (
-                                <Badge
-                                  key={genre}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {genre}
-                                </Badge>
-                              ))}
+              {bookmarkItems.map((bookmark) => {
+                // Ensure manhwa is an object and not an array
+                const manhwa =
+                  bookmark.manhwa && !Array.isArray(bookmark.manhwa)
+                    ? bookmark.manhwa
+                    : null;
+                if (!manhwa) return null;
+
+                return (
+                  <Card key={bookmark.id} className="overflow-hidden">
+                    <div className="flex">
+                      <div className="w-1/3 h-[200px] relative">
+                        <Image
+                          src={manhwa.cover_image}
+                          alt={manhwa.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 p-5">
+                        <div className="flex flex-col h-full justify-between">
+                          <div>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {manhwa.genres
+                                ?.slice(0, 2)
+                                .map((genre: string) => (
+                                  <Badge
+                                    key={genre}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {genre}
+                                  </Badge>
+                                ))}
+                            </div>
+
+                            <h3 className="text-xl font-bold mb-1">
+                              {manhwa.title}
+                            </h3>
+
+                            <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                              {manhwa.description}
+                            </p>
                           </div>
 
-                          <h3 className="text-xl font-bold mb-1">
-                            {bookmark.manhwa.title}
-                          </h3>
+                          <div className="flex justify-between items-center">
+                            <Button asChild size="sm">
+                              <Link href={`/manhwa/${manhwa.slug}`}>
+                                Read Now
+                                <ArrowRight className="ml-2 h-3 w-3" />
+                              </Link>
+                            </Button>
 
-                          <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                            {bookmark.manhwa.description}
-                          </p>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <Button asChild size="sm">
-                            <Link href={`/manhwa/${bookmark.manhwa.slug}`}>
-                              Read Now
-                              <ArrowRight className="ml-2 h-3 w-3" />
-                            </Link>
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <BookmarkX className="h-4 w-4" />
-                            <span className="sr-only">Remove Bookmark</span>
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <BookmarkX className="h-4 w-4" />
+                              <span className="sr-only">Remove Bookmark</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

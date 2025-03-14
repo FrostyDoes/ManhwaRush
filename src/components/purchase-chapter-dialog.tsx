@@ -47,8 +47,7 @@ export function PurchaseChapterDialog({
     setIsLoading(true);
 
     try {
-      // Call the API endpoint instead of the server action
-      const response = await fetch("/api/purchase-chapter", {
+      const response = await fetch("/api/chapters/purchase", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,11 +56,26 @@ export function PurchaseChapterDialog({
           manhwaId,
           chapterId,
           chapterNumber,
+          chapterTitle,
           coinPrice,
         }),
       });
 
       const result = await response.json();
+
+      if (!response.ok) {
+        if (result.insufficientCoins) {
+          toast({
+            title: "Insufficient Coins",
+            description: `You need ${coinPrice} coins to purchase this chapter.`,
+            variant: "destructive",
+          });
+        } else {
+          throw new Error(result.error || "Failed to purchase chapter");
+        }
+        setShowConfirmation(false);
+        return;
+      }
 
       if (result.success) {
         if (result.alreadyPurchased) {
@@ -79,25 +93,17 @@ export function PurchaseChapterDialog({
           setShowUnlockAnimation(true);
         }
       } else {
-        if (result.error === "Insufficient coins") {
-          toast({
-            title: "Insufficient Coins",
-            description: `You need ${coinPrice} coins to purchase this chapter. You currently have ${result.currentCoins} coins.`,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Purchase Failed",
-            description: result.error || "Failed to complete purchase",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Purchase Failed",
+          description: result.error || "Failed to complete purchase",
+          variant: "destructive",
+        });
         setShowConfirmation(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       setShowConfirmation(false);
@@ -250,12 +256,14 @@ export function PurchaseChapterDialog({
       </Dialog>
 
       {/* Unlock Animation */}
-      <UnlockAnimation
-        isOpen={showUnlockAnimation}
-        onAnimationComplete={handleAnimationComplete}
-        chapterNumber={chapterNumber}
-        coinPrice={coinPrice}
-      />
+      {showUnlockAnimation && (
+        <UnlockAnimation
+          isOpen={showUnlockAnimation}
+          onAnimationComplete={handleAnimationComplete}
+          chapterNumber={chapterNumber}
+          coinPrice={coinPrice}
+        />
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { TempoInit } from "@/components/tempo-init";
+import { TempoInit } from "@/app/tempo-init";
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import Script from "next/script";
